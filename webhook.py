@@ -2,7 +2,7 @@
 # import requests
 # import json
 
-# app = Flask(__name__)
+# app = Flask(__name_)
 
 # # Replace with your BingeX API credentials
 # BINGEX_API_KEY = "qWXz7LbWGO9Hy5crbg7jkdRUWVPrgQFLBNlLgYYur3HqU2PKyBLEMsG7sPvG8lBrdWFnaDXbeIiReYKYTFGg"
@@ -55,7 +55,7 @@ from flask import Flask, request, jsonify
 import os
 import threading
 
-app = Flask(_name_)
+app = Flask(__name__)
 
 # Get API keys from environment variables
 API_KEY = os.getenv("BINGX_API_KEY")
@@ -262,5 +262,5 @@ def keep_alive():
 # Start the keep_alive function in a separate thread
 threading.Thread(target=keep_alive, daemon=True).start()
 
-if _name_ == '_main_':
+if __name__ == '__main__':
     app.run(port=5000, host='0.0.0.0')
