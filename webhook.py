@@ -17,6 +17,9 @@ import os
 import threading
 
 app = Flask(__name__)
+@app.route('/')
+def home():
+    return "Webhook is running!", 200
 
 # Get API keys from environment variables
 API_KEY = os.getenv("BINGX_API_KEY")
@@ -162,7 +165,7 @@ def generate_signature(payload):
 def keep_alive():
     while True:
         try:
-            response = requests.get("https://python-webhook-bingx.onrender.com")
+            response = requests.get("https://AlgoBingex2.onrender.com")
             print(f"Ping response: {response.status_code}")
         except Exception as e:
             print(f"Error pinging app: {e}")
