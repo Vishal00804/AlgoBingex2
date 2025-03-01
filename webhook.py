@@ -14,7 +14,7 @@ def home():
 
 # Get API keys from environment variables
 API_KEY = os.getenv("BINGX_API_KEY")
-SECRET_KEY = os.getenv("BINGX_SECRET_KEY")
+SECRET_KEY = os.getenv("BINGX_API_SECRET")
 API_URL = "https://open-api.bingx.com"
 
 # Define risk-reward settings for each symbol
