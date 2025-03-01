@@ -1,13 +1,3 @@
-
-
-# # Replace with your BingeX API credentials
- # BINGX_API_KEY = "qWXz7LbWGO9Hy5crbg7jkdRUWVPrgQFLBNlLgYYur3HqU2PKyBLEMsG7sPvG8lBrdWFnaDXbeIiReYKYTFGg"
- # BINGX_SECRET_KEY = "54xBGgSBOhJUY4NYzc9LgEqcfvrK545qMw5BcD1OMxW1e9wf152RoyNp51hYs5ZJiVJ8IsoKice8Go3btnQ"
-
-
-
-
-
 import time
 import requests
 import hmac
@@ -17,6 +7,7 @@ import os
 import threading
 
 app = Flask(__name__)
+
 @app.route('/')
 def home():
     return "Webhook is running!", 200
@@ -55,16 +46,20 @@ def fetch_real_time_price(symbol):
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    alert = request.get_json()
+    alert = request.get_json(force=True, silent=True)
+    if not alert:
+        print("Received invalid webhook request: No JSON payload")
+        return jsonify({"error": "Invalid request, missing JSON payload"}), 400
+
     print("Received alert:", alert)
 
-    if not alert or "symbol" not in alert or "side" not in alert:
-        return jsonify({"error": "Invalid alert format"}), 400
-
-    symbol = alert["symbol"]
-    side = alert["side"].upper()
+    symbol = alert.get("symbol")
+    side = alert.get("side", "").upper()
     quantity = alert.get("quantity", "0.01")
     position_side = alert.get("positionSide", "SHORT")
+
+    if not symbol or not side:
+        return jsonify({"error": "Invalid alert format"}), 400
 
     # Fetch real-time price
     real_time_price = fetch_real_time_price(symbol)
@@ -93,7 +88,7 @@ def webhook():
     # Place market order
     market_order_response = place_market_order(symbol, side, quantity, position_side)
     print("Market order response:", market_order_response)
-    
+
     if market_order_response.get("code") != 0:
         return jsonify({"error": "Failed to place market order"}), 500
 
@@ -167,12 +162,12 @@ def keep_alive():
         try:
             response = requests.get("https://AlgoBingex2.onrender.com")
             print(f"Ping response: {response.status_code}")
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             print(f"Error pinging app: {e}")
         time.sleep(895)
 
 threading.Thread(target=keep_alive, daemon=True).start()
 
 if __name__ == '__main__':
-
-    app.run(port=10000, host='0.0.0.0')
+    PORT = os.getenv("PORT", 10000)  # Use dynamic port if needed
+    app.run(port=int(PORT), host='0.0.0.0')
