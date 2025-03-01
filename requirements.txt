@@ -1,3 +1,5 @@
 Flask==2.0.3
 requests==2.26.0
 Werkzeug==2.0.3  # Ensure compatibility with Flask 2.0.3
+python -m gunicorn -w 4 -b 0.0.0.0:10000 webhook:app
+gunicorn
