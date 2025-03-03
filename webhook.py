@@ -8,9 +8,28 @@ import threading
 
 app = Flask(__name__)
 
+@app.route('/')
+def home():
+    return "Webhook is running!", 200
+
 # Get API keys from environment variables
 API_KEY = os.getenv("BINGX_API_KEY")
 SECRET_KEY = os.getenv("BINGX_API_SECRET")
+API_URL = "https://open-api.bingx.com"
+
+# Define risk-reward settings for each symbol
+symbol_risk_reward = {
+    "TAO-USDT": {"risk_percent": 1.0, "reward_multiplier": 1.5},
+    "DOGE-USDT": {"risk_percent": 1.0, "reward_multiplier": 1.38},
+    "POPCAT-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.44},
+}
+
+def fetch_real_time_price(symbol):
+    path = "/openApi/swap/v1/ticker/price"
+    params_map = {"symbol": symbol}
+    params_str = parse_params(params_map)
+    url = f"{API_URL}{path}?{params_str}&signature={generate_signature(params_str)}"
+    headers = {"X-BX-APIKEY": API_KEY}
 
     try:
         response = requests.get(url, headers=headers)
@@ -27,16 +46,20 @@ SECRET_KEY = os.getenv("BINGX_API_SECRET")
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    alert = request.get_json()
+    alert = request.get_json(force=True, silent=True)
+    if not alert:
+        print("Received invalid webhook request: No JSON payload")
+        return jsonify({"error": "Invalid request, missing JSON payload"}), 400
+
     print("Received alert:", alert)
 
-    if not alert or "symbol" not in alert or "side" not in alert:
-        return jsonify({"error": "Invalid alert format"}), 400
-
-    symbol = alert["symbol"]
-    side = alert["side"].upper()
+    symbol = alert.get("symbol")
+    side = alert.get("side", "").upper()
     quantity = alert.get("quantity", "0.01")
     position_side = alert.get("positionSide", "SHORT")
+
+    if not symbol or not side:
+        return jsonify({"error": "Invalid alert format"}), 400
 
     # Fetch real-time price
     real_time_price = fetch_real_time_price(symbol)
@@ -45,15 +68,16 @@ def webhook():
 
     print(f"Real-time price for {symbol}: {real_time_price}")
 
-    # Define risk and reward parameters
-    risk_percent = 1.0  # 1% risk
-    reward_multiplier = 1.26  # 1.3x reward-to-risk ratio
+    # Get risk and reward settings for the symbol
+    risk_settings = symbol_risk_reward.get(symbol, {"risk_percent": 1.0, "reward_multiplier": 1.3})
+    risk_percent = risk_settings["risk_percent"]
+    reward_multiplier = risk_settings["reward_multiplier"]
 
-    # Calculate Stop Loss and Take Profit based on position type
+    # Calculate Stop Loss and Take Profit
     if position_side == "LONG":
         stop_loss = real_time_price * (1 - risk_percent / 100)
         take_profit = real_time_price * (1 + (risk_percent * reward_multiplier / 100))
-    elif position_side == "SHORT":
+    else:  # SHORT
         stop_loss = real_time_price * (1 + risk_percent / 100)
         take_profit = real_time_price * (1 - (risk_percent * reward_multiplier / 100))
 
@@ -61,7 +85,7 @@ def webhook():
     take_profit = round(take_profit, 6)
     print(f"Calculated Stop Loss: {stop_loss}, Take Profit: {take_profit}")
 
-    # Place the market order
+    # Place market order
     market_order_response = place_market_order(symbol, side, quantity, position_side)
     print("Market order response:", market_order_response)
 
@@ -133,77 +157,17 @@ def parse_params(params_map):
 def generate_signature(payload):
     return hmac.new(SECRET_KEY.encode("utf-8"), payload.encode("utf-8"), digestmod=sha256).hexdigest()
 
-# @app.route('/webhook', methods=['POST'])
-# def webhook():
-#     alert = request.get_json()
-#     print("Received alert:", alert)
-
-#     if not alert or "symbol" not in alert or "side" not in alert:
-#         return jsonify({"error": "Invalid alert format"}), 400
-
-#     # Extract details from the alert
-#     symbol = alert["symbol"]
-#     side = alert["side"].upper()  # BUY or SELL
-#     quantity = alert.get("quantity", "0.01")  # Default to 0.01 if not provided
-#     position_side = alert.get("positionSide", "SHORT")  # Default to SHORT if not provided
-
-#     # Place the demo order
-#     order_response = place_demo_order(symbol, side, quantity, position_side)
-#     return jsonify(order_response)
-
-
-# def place_demo_order(symbol, side, quantity, position_side):
-#     path = "/openApi/swap/v2/trade/order"  # Demo order endpoint
-#     method = "POST"
-    
-#     params_map = {
-#         "symbol": symbol,
-#         "side": side,
-#         "positionSide": position_side,  # Modify as needed (LONG or SHORT)
-#         "type": "MARKET",
-#         "quantity": quantity
-#     }
-
-#     # Generate the query string and signature
-#     params_str = parse_params(params_map)
-#     url = f"{API_URL}{path}?{params_str}&signature={generate_signature(params_str)}"
-
-#     headers = {
-#         "X-BX-APIKEY": API_KEY
-#     }
-
-#     try:
-#         response = requests.request(method, url, headers=headers)
-#         response.raise_for_status()
-#         return response.json()
-#     except requests.exceptions.RequestException as e:
-#         print("Error placing demo order:", str(e))
-#         return {"error": str(e)}
-
-
-# def parse_params(params_map):
-#     sorted_keys = sorted(params_map)
-#     params_str = "&".join([f"{key}={params_map[key]}" for key in sorted_keys])
-#     return params_str + f"&timestamp={int(time.time() * 1000)}"
-
-
-# def generate_signature(payload):
-#     return hmac.new(SECRET_KEY.encode("utf-8"), payload.encode("utf-8"), digestmod=sha256).hexdigest()
-
-
 def keep_alive():
-    """Function to ping the app's endpoint every 10 minutes."""
     while True:
         try:
-            response = requests.get("https://AlgoBingex2.onrender.com")  # Replace with your actual app URL
+            response = requests.get("https://AlgoBingex2.onrender.com")
             print(f"Ping response: {response.status_code}")
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             print(f"Error pinging app: {e}")
-        time.sleep(895)  # Wait for 600 seconds (10 minutes) before pinging again
+        time.sleep(895)
 
-
-# Start the keep_alive function in a separate thread
 threading.Thread(target=keep_alive, daemon=True).start()
 
 if __name__ == '__main__':
-    app.run(port=5000, host='0.0.0.0')
+    PORT = os.getenv("PORT", 10000)  # Use dynamic port if needed
+    app.run(port=int(PORT), host='0.0.0.0')
