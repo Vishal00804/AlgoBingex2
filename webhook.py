@@ -10,7 +10,7 @@ app = Flask(_name_)
 
 # Get API keys from environment variables
 API_KEY = os.getenv("BINGX_API_KEY")
-SECRET_KEY = os.getenv("BINGX_SECRET_KEY")
+SECRET_KEY = os.getenv("BINGX_API_SECRET")
 API_URL = "https://open-api.bingx.com"
 
 def fetch_real_time_price(symbol):
