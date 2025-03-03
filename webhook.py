@@ -213,5 +213,5 @@ def keep_alive():
 # Start the keep_alive function in a separate thread
 threading.Thread(target=keep_alive, daemon=True).start()
 
-if _name_ == '_main_':
+if __name__ == '__main__':
     app.run(port=5000, host='0.0.0.0')
