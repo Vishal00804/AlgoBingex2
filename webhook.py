@@ -11,14 +11,6 @@ app = Flask(__name__)
 # Get API keys from environment variables
 API_KEY = os.getenv("BINGX_API_KEY")
 SECRET_KEY = os.getenv("BINGX_API_SECRET")
-API_URL = "https://open-api.bingx.com"
-
-def fetch_real_time_price(symbol):
-    path = "/openApi/swap/v1/ticker/price"
-    params_map = {"symbol": symbol}
-    params_str = parse_params(params_map)
-    url = f"{API_URL}{path}?{params_str}&signature={generate_signature(params_str)}"
-    headers = {"X-BX-APIKEY": API_KEY}
 
     try:
         response = requests.get(url, headers=headers)
