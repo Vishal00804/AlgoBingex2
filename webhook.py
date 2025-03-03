@@ -6,7 +6,7 @@ from flask import Flask, request, jsonify
 import os
 import threading
 
-app = Flask(_name_)
+app = Flask(__name__)
 
 # Get API keys from environment variables
 API_KEY = os.getenv("BINGX_API_KEY")
