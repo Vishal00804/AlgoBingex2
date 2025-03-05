@@ -164,7 +164,7 @@ def keep_alive():
             print(f"Ping response: {response.status_code}")
         except requests.exceptions.RequestException as e:
             print(f"Error pinging app: {e}")
-        time.sleep(895)
+        time.sleep(840)
 
 threading.Thread(target=keep_alive, daemon=True).start()
 
