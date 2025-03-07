@@ -5,6 +5,7 @@ from hashlib import sha256
 from flask import Flask, request, jsonify
 import os
 import threading
+import random
 
 app = Flask(__name__)
 
@@ -157,14 +158,25 @@ def parse_params(params_map):
 def generate_signature(payload):
     return hmac.new(SECRET_KEY.encode("utf-8"), payload.encode("utf-8"), digestmod=sha256).hexdigest()
 
+# def keep_alive():
+#     while True:
+#         try:
+#             response = requests.get("https://AlgoBingex2.onrender.com")
+#             print(f"Ping response: {response.status_code}")
+#         except requests.exceptions.RequestException as e:
+#             print(f"Error pinging app: {e}")
+#         time.sleep(600)
+
 def keep_alive():
     while True:
         try:
-            response = requests.get("https://AlgoBingex2.onrender.com")
-            print(f"Ping response: {response.status_code}")
+            unique_id = random.randint(1000, 9999)  # Generate a 4-digit unique ID
+            url = f"https://AlgoBingex2.onrender.com?uid={unique_id}"
+            response = requests.get(url)
+            print(f"Ping response: {response.status_code}, Unique ID: {unique_id}")
         except requests.exceptions.RequestException as e:
             print(f"Error pinging app: {e}")
-        time.sleep(600)
+        time.sleep(600)  # Sleep for 10 minutes
 
 threading.Thread(target=keep_alive, daemon=True).start()
 
