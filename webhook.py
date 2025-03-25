@@ -20,9 +20,9 @@ API_URL = "https://open-api.bingx.com"
 
 # Define risk-reward settings for each symbol
 symbol_risk_reward = {
-    "TAO-USDT": {"risk_percent": 0.95, "reward_multiplier": 1.44},
-    "DOGE-USDT": {"risk_percent": 1.0, "reward_multiplier": 1.38},
-    "POPCAT-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.44},
+    "BTC-USDT": {"risk_percent": 1.0, "reward_multiplier": 1.5, "tp_sl": "NO"},
+    "DOGE-USDT": {"risk_percent": 1.0, "reward_multiplier": 1.38, "tp_sl": "YES"},
+    "POPCAT-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.45, "tp_sl": "YES"},
 }
 
 def fetch_real_time_price(symbol):
@@ -58,9 +58,17 @@ def webhook():
     side = alert.get("side", "").upper()
     quantity = alert.get("quantity", "0.01")
     position_side = alert.get("positionSide", "SHORT")
+    leverage = alert.get("leverage", "1")  # Added leverage from the alert
 
     if not symbol or not side:
         return jsonify({"error": "Invalid alert format"}), 400
+
+    # Set leverage before placing orders
+    set_leverage_response = set_leverage(symbol, position_side, leverage)
+    print("Set leverage response:", set_leverage_response)
+
+    if set_leverage_response.get("code") != 0:
+        return jsonify({"error": "Failed to set leverage"}), 500
 
     # Fetch real-time price
     real_time_price = fetch_real_time_price(symbol)
@@ -70,9 +78,10 @@ def webhook():
     print(f"Real-time price for {symbol}: {real_time_price}")
 
     # Get risk and reward settings for the symbol
-    risk_settings = symbol_risk_reward.get(symbol, {"risk_percent": 0.95, "reward_multiplier": 1.32})
+    risk_settings = symbol_risk_reward.get(symbol, {"risk_percent": 1.0, "reward_multiplier": 1.4, "tp_sl": "YES"})
     risk_percent = risk_settings["risk_percent"]
     reward_multiplier = risk_settings["reward_multiplier"]
+    tp_sl_enabled = risk_settings["tp_sl"].upper()
 
     # Calculate Stop Loss and Take Profit
     if position_side == "LONG":
@@ -93,14 +102,24 @@ def webhook():
     if market_order_response.get("code") != 0:
         return jsonify({"error": "Failed to place market order"}), 500
 
-    # Place stop-loss and take-profit orders
-    stop_loss_response = place_stop_loss_order(symbol, "SELL" if side == "BUY" else "BUY", stop_loss, quantity, position_side)
-    print("Stop-loss order response:", stop_loss_response)
+    # Place stop-loss and take-profit orders only if TP/SL is enabled for the symbol
+    if tp_sl_enabled == "YES":
+        stop_loss_response = place_stop_loss_order(symbol, "SELL" if side == "BUY" else "BUY", stop_loss, quantity, position_side)
+        print("Stop-loss order response:", stop_loss_response)
 
-    take_profit_response = place_take_profit_order(symbol, "SELL" if side == "BUY" else "BUY", take_profit, quantity, position_side)
-    print("Take-profit order response:", take_profit_response)
+        take_profit_response = place_take_profit_order(symbol, "SELL" if side == "BUY" else "BUY", take_profit, quantity, position_side)
+        print("Take-profit order response:", take_profit_response)
 
     return jsonify({"message": "Market order and TP/SL placed successfully"})
+
+def set_leverage(symbol, position_side, leverage):
+    path = "/openApi/swap/v2/trade/leverage"
+    params_map = {
+        "symbol": symbol,
+        "side": position_side,
+        "leverage": str(leverage)
+    }
+    return send_request("POST", path, params_map)
 
 def place_market_order(symbol, side, quantity, position_side):
     path = "/openApi/swap/v2/trade/order"
