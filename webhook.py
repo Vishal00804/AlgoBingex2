@@ -20,7 +20,7 @@ API_URL = "https://open-api.bingx.com"
 
 # Define risk-reward settings for each symbol
 symbol_risk_reward = {
-    "TAO-USDT": {"risk_percent": 1.0, "reward_multiplier": 1.4, "tp_sl": "NO"},
+    "TAO-USDT": {"risk_percent": 0.91, "reward_multiplier": 1.5, "tp_sl": "NO"},
     "DOGE-USDT": {"risk_percent": 1.0, "reward_multiplier": 1.38, "tp_sl": "YES"},
     "POPCAT-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.45, "tp_sl": "YES"},
 }
@@ -78,7 +78,7 @@ def webhook():
     print(f"Real-time price for {symbol}: {real_time_price}")
 
     # Get risk and reward settings for the symbol
-    risk_settings = symbol_risk_reward.get(symbol, {"risk_percent": 1.0, "reward_multiplier": 1.4, "tp_sl": "NO"})
+    risk_settings = symbol_risk_reward.get(symbol, {"risk_percent": 0.91, "reward_multiplier": 1.5, "tp_sl": "NO"})
     risk_percent = risk_settings["risk_percent"]
     reward_multiplier = risk_settings["reward_multiplier"]
     tp_sl_enabled = risk_settings["tp_sl"].upper()
