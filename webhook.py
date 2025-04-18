@@ -20,7 +20,7 @@ API_URL = "https://open-api.bingx.com"
 
 # Define risk-reward settings for each symbol
 symbol_risk_reward = {
-    "TAO-USDT": {"risk_percent": 0.91, "reward_multiplier": 1.5, "tp_sl": "NO"},
+    "TAO-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.45, "tp_sl": "NO"},
     "DOGE-USDT": {"risk_percent": 1.0, "reward_multiplier": 1.38, "tp_sl": "YES"},
     "POPCAT-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.45, "tp_sl": "YES"},
     "ETH-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.45, "tp_sl": "NO"},
