@@ -26,7 +26,7 @@ symbol_risk_reward = {
     "ETH-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.45, "tp_sl": "NO"},
     "AERO-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.45, "tp_sl": "NO"},
     "LAUNCHCOIN-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.45, "tp_sl": "NO"},
-    "FARTCOIN-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.45, "tp_sl": "NO"},
+    "PENGU-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.45, "tp_sl": "NO"},
     "LINK-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.45, "tp_sl": "NO"},
 }
 
