@@ -20,14 +20,14 @@ API_URL = "https://open-api.bingx.com"
 
 # Define risk-reward settings for each symbol
 symbol_risk_reward = {
-    "TAO-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.45, "tp_sl": "NO"},
+    "PUMP-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.45, "tp_sl": "NO"},
     "DOGE-USDT": {"risk_percent": 1.0, "reward_multiplier": 1.38, "tp_sl": "NO"},
     "POPCAT-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.45, "tp_sl": "NO"},
     "ETH-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.45, "tp_sl": "NO"},
-    "AERO-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.45, "tp_sl": "NO"},
+    "SOL-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.45, "tp_sl": "NO"},
     "FLOKI-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.45, "tp_sl": "NO"},
     "PENGU-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.45, "tp_sl": "NO"},
-    "LINK-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.45, "tp_sl": "NO"},
+    "ENA-USDT": {"risk_percent": 0.98, "reward_multiplier": 1.45, "tp_sl": "NO"},
 }
 
 def fetch_real_time_price(symbol):
