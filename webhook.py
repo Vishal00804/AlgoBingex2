@@ -63,32 +63,41 @@ def webhook():
     side = alert.get("side", "").upper()
     quantity = alert.get("quantity", "0.01")
     position_side = alert.get("positionSide", "SHORT")
-    leverage = alert.get("leverage", "1")  # Added leverage from the alert
+    leverage = alert.get("leverage", "1")
 
-    if not symbol or not side:
-        return jsonify({"error": "Invalid alert format"}), 400
+    # === ✅ FILTER: Ignore fake/ping alerts ===
+    if side == "NONE":
+        print(f"Fake/Ping alert received for {symbol}. No action taken.")
+        return jsonify({"status": "ping received — no trade executed"}), 200
 
-    # Set leverage before placing orders
+    if side not in ["BUY", "SELL"]:
+        print(f"Invalid alert side '{side}' received. Ignored.")
+        return jsonify({"error": "Invalid side value"}), 400
+
+    if not symbol:
+        return jsonify({"error": "Missing symbol in alert"}), 400
+
+    # === Set leverage ===
     set_leverage_response = set_leverage(symbol, position_side, leverage)
     print("Set leverage response:", set_leverage_response)
 
     if set_leverage_response.get("code") != 0:
         return jsonify({"error": "Failed to set leverage"}), 500
 
-    # Fetch real-time price
+    # === Fetch real-time price ===
     real_time_price = fetch_real_time_price(symbol)
     if real_time_price is None:
         return jsonify({"error": "Failed to fetch real-time price"}), 500
 
     print(f"Real-time price for {symbol}: {real_time_price}")
 
-    # Get risk and reward settings for the symbol
+    # === Risk & TP/SL Settings ===
     risk_settings = symbol_risk_reward.get(symbol, {"risk_percent": 0.91, "reward_multiplier": 1.5, "tp_sl": "NO"})
     risk_percent = risk_settings["risk_percent"]
     reward_multiplier = risk_settings["reward_multiplier"]
     tp_sl_enabled = risk_settings["tp_sl"].upper()
 
-    # Calculate Stop Loss and Take Profit
+    # === Calculate SL/TP ===
     if position_side == "LONG":
         stop_loss = real_time_price * (1 - risk_percent / 100)
         take_profit = real_time_price * (1 + (risk_percent * reward_multiplier / 100))
@@ -100,14 +109,14 @@ def webhook():
     take_profit = round(take_profit, 6)
     print(f"Calculated Stop Loss: {stop_loss}, Take Profit: {take_profit}")
 
-    # Place market order
+    # === Market Order ===
     market_order_response = place_market_order(symbol, side, quantity, position_side)
     print("Market order response:", market_order_response)
 
     if market_order_response.get("code") != 0:
         return jsonify({"error": "Failed to place market order"}), 500
 
-    # Place stop-loss and take-profit orders only if TP/SL is enabled for the symbol
+    # === TP/SL Orders (if enabled) ===
     if tp_sl_enabled == "YES":
         stop_loss_response = place_stop_loss_order(symbol, "SELL" if side == "BUY" else "BUY", stop_loss, quantity, position_side)
         print("Stop-loss order response:", stop_loss_response)
@@ -115,7 +124,7 @@ def webhook():
         take_profit_response = place_take_profit_order(symbol, "SELL" if side == "BUY" else "BUY", take_profit, quantity, position_side)
         print("Take-profit order response:", take_profit_response)
 
-    return jsonify({"message": "Market order and TP/SL placed successfully"})
+    return jsonify({"message": "Market order and TP/SL placed successfully"}), 200
 
 def set_leverage(symbol, position_side, leverage):
     path = "/openApi/swap/v2/trade/leverage"
@@ -182,19 +191,10 @@ def parse_params(params_map):
 def generate_signature(payload):
     return hmac.new(SECRET_KEY.encode("utf-8"), payload.encode("utf-8"), digestmod=sha256).hexdigest()
 
-# def keep_alive():
-#     while True:
-#         try:
-#             response = requests.get("https://AlgoBingex2.onrender.com")
-#             print(f"Ping response: {response.status_code}")
-#         except requests.exceptions.RequestException as e:
-#             print(f"Error pinging app: {e}")
-#         time.sleep(600)
-
 def keep_alive():
     while True:
         try:
-            unique_id = random.randint(1000, 9999)  # Generate a 4-digit unique ID
+            unique_id = random.randint(1000, 9999)
             url = f"https://AlgoBingex2.onrender.com?uid={unique_id}"
             response = requests.get(url)
             print(f"Ping response: {response.status_code}, Unique ID: {unique_id}")
@@ -205,5 +205,5 @@ def keep_alive():
 threading.Thread(target=keep_alive, daemon=True).start()
 
 if __name__ == '__main__':
-    PORT = os.getenv("PORT", 10000)  # Use dynamic port if needed
+    PORT = os.getenv("PORT", 10000)
     app.run(port=int(PORT), host='0.0.0.0')
