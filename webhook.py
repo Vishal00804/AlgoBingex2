@@ -6,6 +6,7 @@ from flask import Flask, request, jsonify
 import os
 import threading
 import random
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -37,13 +38,34 @@ symbol_risk_reward = {
 # === Telegram Message Sender ===
 def send_telegram_message(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "HTML"}
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "Markdown"}
     try:
         r = requests.post(url, json=payload)
         if r.status_code != 200:
             print("Telegram send error:", r.text)
     except Exception as e:
         print("Telegram send failed:", e)
+
+# === LuxAlgo Styled Message Builder ===
+def build_luxalgo_message(signal_type, symbol, direction, position_side, entry_price, tp=None, sl=None):
+    current_time = datetime.utcnow().strftime("%d %b %Y | %I:%M %p UTC")
+    if signal_type == "ENTRY":
+        return (
+            f"💎 *LUXAALGO SIGNAL* 💎\n"
+            f"*Symbol:* {symbol}\n"
+            f"*Direction:* {direction} {'📈' if direction == 'LONG' else '📉'}\n"
+            f"*Position Side:* {position_side}\n"
+            f"*Entry:* {entry_price} USDT\n\n"
+            f"📅 {current_time}"
+        )
+    elif signal_type == "EXIT":
+        return (
+            f"🏁 *TRADE EXIT* 🏁\n"
+            f"*Symbol:* {symbol}\n"
+            f"*Exit Price:* {entry_price} USDT\n"
+            f"*TP:* {tp} | *SL:* {sl}\n\n"
+            f"📅 {current_time}"
+        )
 
 # === Fetch real-time price ===
 def fetch_real_time_price(symbol):
@@ -78,7 +100,7 @@ def webhook():
     symbol = alert.get("symbol")
     side = alert.get("side", "").upper()
     quantity = alert.get("quantity", "0.01")
-    position_side = alert.get("positionSide", "SHORT")
+    position_side = alert.get("positionSide", "LONG")
     leverage = alert.get("leverage", "1")
 
     if side == "NONE":
@@ -121,23 +143,17 @@ def webhook():
     if market_order_response.get("code") != 0:
         return jsonify({"error": "Failed to place market order"}), 500
 
-    # 📢 Send Telegram Entry Signal
-    send_telegram_message(
-        f"📈 <b>TRADE ENTRY</b>\n"
-        f"Symbol: {symbol}\nSide: {side}\nPos Side: {position_side}\nQty: {quantity}\nPrice: {real_time_price}\n"
-        f"TP: {take_profit}\nSL: {stop_loss}"
-    )
+    # 📢 Send LuxAlgo Styled Entry
+    direction = "LONG" if side == "BUY" else "SHORT"
+    send_telegram_message(build_luxalgo_message("ENTRY", symbol, direction, position_side, real_time_price))
 
     # === TP/SL Orders ===
     if tp_sl_enabled == "YES":
         stop_loss_response = place_stop_loss_order(symbol, "SELL" if side == "BUY" else "BUY", stop_loss, quantity, position_side)
         take_profit_response = place_take_profit_order(symbol, "SELL" if side == "BUY" else "BUY", take_profit, quantity, position_side)
 
-        # 📢 Send Telegram Exit Targets
-        send_telegram_message(
-            f"🎯 <b>EXIT TARGETS SET</b>\n"
-            f"TP: {take_profit}\nSL: {stop_loss}"
-        )
+        # 📢 Send LuxAlgo Styled Exit Targets
+        send_telegram_message(build_luxalgo_message("EXIT", symbol, direction, position_side, real_time_price, tp=take_profit, sl=stop_loss))
 
     return jsonify({"message": "Trade executed and Telegram sent"}), 200
 
